@@ -1,0 +1,241 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://acp.local/schemas/handoff.schema.json",
+  "title": "ACP Handoff",
+  "description": "Structured, verifiable handoff between agents (ACP v1.1).",
+  "type": "object",
+  "required": [
+    "protocol_version", "task_id", "source_agent", "target_agent", "objective", "status",
+    "completed_work", "verified_findings", "unverified_hypotheses", "decisions",
+    "modified_artifacts", "constraints", "test_results", "open_issues", "next_actions",
+    "acceptance_criteria"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "protocol_version": { "type": "string", "pattern": "^ACP/1\\.[0-9]+(\\.[0-9]+)?$" },
+    "task_id": { "type": "string", "minLength": 1 },
+    "created_at": { "type": "string", "format": "date-time" },
+    "source_agent": { "$ref": "#/$defs/agent" },
+    "target_agent": { "$ref": "#/$defs/agent" },
+    "objective": { "type": "string", "minLength": 1 },
+    "status": { "enum": ["pending", "in_progress", "blocked", "ready_for_review", "completed", "failed"] },
+    "level": { "enum": ["L0", "L1", "L2", "L3"] },
+    "repository": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "url": { "type": "string" },
+        "path": { "type": "string" },
+        "branch": { "type": "string" },
+        "base_commit": { "$ref": "#/$defs/commit" },
+        "head_commit": { "$ref": "#/$defs/commit" }
+      }
+    },
+    "completed_work": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "verified_findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "statement", "evidence"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "statement": { "type": "string", "minLength": 1 },
+          "evidence": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/evidence" } }
+        }
+      }
+    },
+    "unverified_hypotheses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "statement"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "statement": { "type": "string", "minLength": 1 },
+          "basis": { "type": "string" },
+          "how_to_verify": { "type": "string" }
+        }
+      }
+    },
+    "decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "decision", "rationale", "decided_by"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "decision": { "type": "string", "minLength": 1 },
+          "rationale": { "type": "string" },
+          "decided_by": { "enum": ["user", "agent", "operator"] },
+          "reversible": { "type": "boolean" }
+        }
+      }
+    },
+    "modified_artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "change"],
+        "additionalProperties": false,
+        "properties": {
+          "path": { "type": "string", "minLength": 1 },
+          "change": { "enum": ["added", "modified", "deleted", "renamed"] },
+          "previous_path": { "type": "string" },
+          "summary": { "type": "string" },
+          "commit": { "$ref": "#/$defs/commit" }
+        }
+      }
+    },
+    "constraints": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["kind", "statement"],
+        "additionalProperties": false,
+        "properties": {
+          "kind": { "enum": ["must", "must_not", "should", "invariant"] },
+          "statement": { "type": "string", "minLength": 1 },
+          "source": { "enum": ["user", "operator", "agent", "repository"] }
+        }
+      }
+    },
+    "test_results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "status", "executed"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "command": { "type": "string" },
+          "status": { "enum": ["passed", "failed", "error", "skipped", "not_run"] },
+          "executed": { "type": "boolean" },
+          "executed_by": { "type": "string" },
+          "summary": { "type": "string" },
+          "evidence": { "type": "array", "items": { "$ref": "#/$defs/evidence" } }
+        },
+        "allOf": [
+          {
+            "if": { "properties": { "status": { "enum": ["passed", "failed", "error"] } }, "required": ["status"] },
+            "then": { "properties": { "executed": { "const": true } } }
+          },
+          {
+            "if": { "properties": { "status": { "const": "not_run" } }, "required": ["status"] },
+            "then": { "properties": { "executed": { "const": false } } }
+          }
+        ]
+      }
+    },
+    "open_issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "description", "severity"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "description": { "type": "string", "minLength": 1 },
+          "severity": { "enum": ["blocker", "major", "minor", "info"] },
+          "location": { "type": "string" }
+        }
+      }
+    },
+    "next_actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "action"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "action": { "type": "string", "minLength": 1 },
+          "owner": { "type": "string" },
+          "priority": { "enum": ["high", "medium", "low"] },
+          "requires_approval": { "type": "boolean" }
+        }
+      }
+    },
+    "acceptance_criteria": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "description", "status"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "description": { "type": "string", "minLength": 1 },
+          "status": { "enum": ["met", "not_met", "not_verified"] },
+          "evidence": { "type": "array", "items": { "$ref": "#/$defs/evidence" } }
+        },
+        "if": { "properties": { "status": { "const": "met" } }, "required": ["status"] },
+        "then": { "required": ["evidence"], "properties": { "evidence": { "minItems": 1 } } }
+      }
+    },
+    "approvals": { "type": "array", "items": { "$ref": "#/$defs/approval" } },
+    "untrusted_inputs": {
+      "type": "array",
+      "description": "Sources processed as data whose embedded instructions were NOT followed.",
+      "items": {
+        "type": "object",
+        "required": ["source", "note"],
+        "additionalProperties": false,
+        "properties": {
+          "source": { "type": "string" },
+          "note": { "type": "string" }
+        }
+      }
+    },
+    "context_notes": { "type": "string" }
+  },
+  "$defs": {
+    "agent": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "platform": { "type": "string" },
+        "model": { "type": "string" },
+        "role": { "type": "string" }
+      }
+    },
+    "commit": { "type": "string", "pattern": "^[0-9a-f]{7,40}$" },
+    "evidence": {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "enum": ["file", "commit", "command", "test", "url", "log"] },
+        "path": { "type": "string" },
+        "lines": { "type": "string", "pattern": "^[0-9]+(-[0-9]+)?$" },
+        "commit": { "$ref": "#/$defs/commit" },
+        "command": { "type": "string" },
+        "exit_code": { "type": "integer" },
+        "output_excerpt": { "type": "string", "maxLength": 2000 },
+        "url": { "type": "string" },
+        "note": { "type": "string" }
+      },
+      "allOf": [
+        { "if": { "properties": { "type": { "const": "file" } } }, "then": { "required": ["path"] } },
+        { "if": { "properties": { "type": { "const": "commit" } } }, "then": { "required": ["commit"] } },
+        { "if": { "properties": { "type": { "enum": ["command", "test"] } } }, "then": { "required": ["command"] } },
+        { "if": { "properties": { "type": { "const": "url" } } }, "then": { "required": ["url"] } }
+      ]
+    },
+    "approval": {
+      "type": "object",
+      "required": ["action", "scope", "granted_by"],
+      "additionalProperties": false,
+      "properties": {
+        "action": { "type": "string" },
+        "scope": { "type": "string" },
+        "granted_by": { "enum": ["user", "operator"] },
+        "granted_at": { "type": "string" }
+      }
+    }
+  }
+}

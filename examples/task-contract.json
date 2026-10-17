@@ -1,0 +1,46 @@
+{
+  "protocol_version": "ACP/1.1",
+  "task_id": "AUTH-117",
+  "modes": ["CODING"],
+  "mode_source": "auto",
+  "level": "L2",
+  "objective": "Correggere la scadenza prematura delle sessioni utente senza modificare il formato del cookie di sessione.",
+  "context": [
+    { "text": "Gli utenti vengono disconnessi dopo circa 5 minuti invece di 30.", "status": "reported", "source": "utente" },
+    { "text": "config/settings.yaml definisce session_timeout: \"30\" come stringa.", "status": "verified", "source": "config/settings.yaml:14" },
+    { "text": "Il confronto stringa/intero in session.py causa la scadenza anticipata.", "status": "hypothesis" }
+  ],
+  "scope": {
+    "in": ["src/auth/session.py", "src/config/loader.py", "tests/auth/"],
+    "out": ["formato del cookie", "schema del database utenti", "UI di login"]
+  },
+  "constraints": [
+    { "kind": "must_not", "statement": "Non modificare il formato del cookie di sessione.", "rationale": "Le app mobile esistenti lo leggono." },
+    { "kind": "must_not", "statement": "Non aggiungere nuove dipendenze." },
+    { "kind": "should", "statement": "Validare i tipi in fase di caricamento della configurazione." }
+  ],
+  "invariants": [
+    { "id": "INV1", "statement": "Login e logout funzionano come prima.", "check": "pytest tests/auth/test_login.py tests/auth/test_logout.py" },
+    { "id": "INV2", "statement": "Il cookie emesso ha lo stesso nome, gli stessi attributi e la stessa struttura.", "check": "pytest tests/auth/test_cookie_format.py" }
+  ],
+  "assumptions": ["La configurazione di produzione usa lo stesso file settings.yaml."],
+  "acceptance_criteria": [
+    {
+      "id": "AC1",
+      "description": "Un test riproduce la scadenza prematura: fallisce prima della correzione e passa dopo.",
+      "verification": { "method": "automated_test", "command": "pytest tests/auth/test_session_timeout.py", "expected": "fallisce sul commit base, passa dopo la modifica" }
+    },
+    {
+      "id": "AC2",
+      "description": "Tutti i test esistenti di tests/auth passano.",
+      "verification": { "method": "automated_test", "command": "pytest tests/auth", "expected": "0 failed" }
+    },
+    {
+      "id": "AC3",
+      "description": "Un valore di timeout non numerico produce un errore esplicito all'avvio.",
+      "verification": { "method": "automated_test", "command": "pytest tests/config/test_loader.py::test_invalid_timeout" }
+    }
+  ],
+  "risks": ["Altri parametri numerici della configurazione potrebbero avere lo stesso problema di tipo."],
+  "deliverables": ["Diff mirato", "Nuovi test", "Riepilogo con evidenze"]
+}

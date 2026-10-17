@@ -1,0 +1,68 @@
+{
+  "_comment": "Mutazioni dell'handoff valido (examples/handoff.json). Ogni caso DEVE essere rifiutato dallo schema o dai controlli di coerenza. Formato patch: set = sostituisce il valore al percorso, delete = rimuove la chiave.",
+  "cases": [
+    {
+      "id": "N1",
+      "reason": "Test dichiarato passato ma non eseguito",
+      "set": { "test_results/1/status": "passed" }
+    },
+    {
+      "id": "N2",
+      "reason": "Finding verificato senza evidenze",
+      "set": { "verified_findings/0/evidence": [] }
+    },
+    {
+      "id": "N3",
+      "reason": "Stato non standard",
+      "set": { "status": "done" }
+    },
+    {
+      "id": "N4",
+      "reason": "Campo obbligatorio mancante (unverified_hypotheses)",
+      "delete": ["unverified_hypotheses"]
+    },
+    {
+      "id": "N5",
+      "reason": "Criterio 'met' senza evidenza",
+      "set": { "acceptance_criteria/2/status": "met" }
+    },
+    {
+      "id": "N6",
+      "reason": "Hash di commit non valido",
+      "set": { "repository/head_commit": "HEAD~1" }
+    },
+    {
+      "id": "N7",
+      "reason": "Evidenza di tipo file senza percorso",
+      "set": { "verified_findings/0/evidence/0": { "type": "file", "lines": "10-12" } }
+    },
+    {
+      "id": "N8",
+      "reason": "Coerenza: status completed con criteri non soddisfatti e issue aperti",
+      "set": { "status": "completed" },
+      "semantic": true
+    },
+    {
+      "id": "N9",
+      "reason": "Coerenza: status blocked senza issue blocker",
+      "set": { "status": "blocked" },
+      "semantic": true
+    },
+    {
+      "id": "N10",
+      "reason": "Sicurezza: segreto in chiaro nell'handoff",
+      "set": { "context_notes": "Usa la chiave sk-ant-api03-AbCdEfGhIjKlMnOpQrStUvWxYz0123456789 per i test" },
+      "semantic": true
+    },
+    {
+      "id": "N11",
+      "reason": "Versione di protocollo non riconosciuta",
+      "set": { "protocol_version": "2.0" }
+    },
+    {
+      "id": "N12",
+      "reason": "Proprietà non prevista dallo schema",
+      "set": { "verified": true }
+    }
+  ]
+}

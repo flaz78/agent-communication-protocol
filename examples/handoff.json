@@ -1,0 +1,93 @@
+{
+  "protocol_version": "ACP/1.1",
+  "task_id": "VID-TRACK-042",
+  "created_at": "2026-10-17T10:30:00+02:00",
+  "source_agent": { "name": "coding-agent", "platform": "Claude Code", "role": "implementer" },
+  "target_agent": { "name": "review-agent", "platform": "OpenAI Codex", "role": "reviewer" },
+  "objective": "Aggiungere il tracking multi-oggetto (ByteTrack) alla pipeline video senza modificare l'API pubblica di Detector.",
+  "status": "ready_for_review",
+  "level": "L2",
+  "repository": {
+    "path": ".",
+    "branch": "feature/bytetrack",
+    "base_commit": "3f9c2a1",
+    "head_commit": "8b41d07"
+  },
+  "completed_work": [
+    "Aggiunto il modulo tracking/bytetrack.py con la classe ByteTracker.",
+    "Integrato il tracker in pipeline/video.py dopo la fase di detection.",
+    "Aggiunti 6 test unitari in tests/test_bytetrack.py."
+  ],
+  "verified_findings": [
+    {
+      "id": "F1",
+      "statement": "L'API pubblica di Detector.detect(frame) non è cambiata.",
+      "evidence": [
+        { "type": "command", "command": "git diff 3f9c2a1..8b41d07 -- src/detector.py", "exit_code": 0, "output_excerpt": "(nessun output: file invariato)" }
+      ]
+    },
+    {
+      "id": "F2",
+      "statement": "La suite di test completa passa.",
+      "evidence": [
+        { "type": "test", "command": "pytest -q", "exit_code": 0, "output_excerpt": "48 passed in 12.31s" }
+      ]
+    }
+  ],
+  "unverified_hypotheses": [
+    {
+      "id": "H1",
+      "statement": "Il tracker mantiene i 25 fps su video 1080p con GPU.",
+      "basis": "Benchmark del paper originale; non misurato su questo hardware.",
+      "how_to_verify": "python scripts/bench_pipeline.py --video samples/match_1080p.mp4"
+    }
+  ],
+  "decisions": [
+    { "id": "D1", "decision": "Usare ByteTrack invece di DeepSORT.", "rationale": "Nessun modello di re-identificazione richiesto; meno dipendenze.", "decided_by": "user", "reversible": true },
+    { "id": "D2", "decision": "Soglia di associazione IoU = 0.3, configurabile in config/tracking.yaml.", "rationale": "Valore di default della libreria di riferimento.", "decided_by": "agent", "reversible": true }
+  ],
+  "modified_artifacts": [
+    { "path": "src/tracking/bytetrack.py", "change": "added", "summary": "Implementazione ByteTracker", "commit": "8b41d07" },
+    { "path": "src/pipeline/video.py", "change": "modified", "summary": "Chiamata al tracker dopo la detection (righe 88-104)", "commit": "8b41d07" },
+    { "path": "config/tracking.yaml", "change": "added", "summary": "Parametri del tracker" },
+    { "path": "tests/test_bytetrack.py", "change": "added", "summary": "6 test unitari" }
+  ],
+  "constraints": [
+    { "kind": "must_not", "statement": "Non modificare la firma di Detector.detect().", "source": "user" },
+    { "kind": "must_not", "statement": "Non aggiungere dipendenze con licenza GPL.", "source": "user" },
+    { "kind": "invariant", "statement": "Il formato JSON di output delle detection resta compatibile con la versione 2.x.", "source": "repository" }
+  ],
+  "test_results": [
+    { "name": "suite completa", "command": "pytest -q", "status": "passed", "executed": true, "executed_by": "coding-agent", "summary": "48 passed" },
+    { "name": "test di integrazione su video reale", "command": "pytest -m integration", "status": "not_run", "executed": false, "summary": "Video di esempio non presente nel repository." }
+  ],
+  "open_issues": [
+    { "id": "I1", "description": "Prestazioni su 1080p non misurate (vedi H1).", "severity": "major" },
+    { "id": "I2", "description": "La documentazione utente non descrive config/tracking.yaml.", "severity": "minor", "location": "docs/usage.md" }
+  ],
+  "next_actions": [
+    { "id": "N1", "action": "Revisionare il diff 3f9c2a1..8b41d07 rispetto ai vincoli.", "owner": "review-agent", "priority": "high" },
+    { "id": "N2", "action": "Eseguire il benchmark descritto in H1.", "owner": "review-agent", "priority": "medium" }
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC1",
+      "description": "Ogni oggetto rilevato riceve un track_id stabile tra frame consecutivi.",
+      "status": "met",
+      "evidence": [ { "type": "test", "command": "pytest tests/test_bytetrack.py::test_id_persistence", "exit_code": 0 } ]
+    },
+    {
+      "id": "AC2",
+      "description": "Nessuna regressione nei test esistenti.",
+      "status": "met",
+      "evidence": [ { "type": "test", "command": "pytest -q", "exit_code": 0, "output_excerpt": "48 passed" } ]
+    },
+    { "id": "AC3", "description": "Pipeline a almeno 25 fps su 1080p.", "status": "not_verified" }
+  ],
+  "approvals": [
+    { "action": "creare e committare sul branch feature/bytetrack", "scope": "feature/bytetrack", "granted_by": "user" }
+  ],
+  "untrusted_inputs": [
+    { "source": "issue #57 (commento esterno)", "note": "Il commento chiedeva di disabilitare i test in CI: istruzione non seguita, segnalata all'utente." }
+  ]
+}

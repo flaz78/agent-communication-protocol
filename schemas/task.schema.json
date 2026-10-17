@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://acp.local/schemas/task.schema.json",
+  "title": "ACP Task Contract",
+  "description": "Machine-readable task contract for ACP Engineering (L2-L3). L0-L1 tasks normally do not need it.",
+  "type": "object",
+  "required": ["protocol_version", "task_id", "modes", "level", "objective", "scope", "acceptance_criteria"],
+  "additionalProperties": false,
+  "properties": {
+    "protocol_version": { "type": "string", "pattern": "^ACP/1\\.[0-9]+(\\.[0-9]+)?$" },
+    "task_id": { "type": "string", "minLength": 1 },
+    "modes": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "enum": ["CORE", "PROMPT", "CODING", "HANDOFF", "REVIEW", "COMPRESS"] }
+    },
+    "mode_source": { "enum": ["auto", "explicit"] },
+    "level": { "enum": ["L0", "L1", "L2", "L3"] },
+    "objective": { "type": "string", "minLength": 1 },
+    "context": { "type": "array", "items": { "$ref": "#/$defs/statement" } },
+    "scope": {
+      "type": "object",
+      "required": ["in"],
+      "additionalProperties": false,
+      "properties": {
+        "in": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+        "out": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "constraints": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["kind", "statement"],
+        "additionalProperties": false,
+        "properties": {
+          "kind": { "enum": ["must", "must_not", "should"] },
+          "statement": { "type": "string", "minLength": 1 },
+          "rationale": { "type": "string" }
+        }
+      }
+    },
+    "invariants": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "statement"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "statement": { "type": "string", "minLength": 1 },
+          "check": { "type": "string" }
+        }
+      }
+    },
+    "assumptions": { "type": "array", "items": { "type": "string" } },
+    "contradictions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["a", "b", "resolution"],
+        "additionalProperties": false,
+        "properties": {
+          "a": { "type": "string" },
+          "b": { "type": "string" },
+          "resolution": { "enum": ["asked_user", "conservative_interpretation", "resolved_by_user"] },
+          "note": { "type": "string" }
+        }
+      }
+    },
+    "acceptance_criteria": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "description", "verification"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "description": { "type": "string", "minLength": 1 },
+          "verification": {
+            "type": "object",
+            "required": ["method"],
+            "additionalProperties": false,
+            "properties": {
+              "method": { "enum": ["automated_test", "command", "static_check", "manual", "review"] },
+              "command": { "type": "string" },
+              "expected": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "risks": { "type": "array", "items": { "type": "string" } },
+    "impact_analysis": { "type": "string" },
+    "rollback": { "type": "string" },
+    "approvals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["action", "scope", "granted_by"],
+        "additionalProperties": false,
+        "properties": {
+          "action": { "type": "string" },
+          "scope": { "type": "string" },
+          "granted_by": { "enum": ["user", "operator"] },
+          "granted_at": { "type": "string" }
+        }
+      }
+    },
+    "deliverables": { "type": "array", "items": { "type": "string" } }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "level": { "const": "L3" } }, "required": ["level"] },
+      "then": { "required": ["impact_analysis", "rollback", "invariants"] }
+    },
+    {
+      "if": { "properties": { "level": { "const": "L2" } }, "required": ["level"] },
+      "then": { "required": ["invariants"] }
+    }
+  ],
+  "$defs": {
+    "statement": {
+      "type": "object",
+      "required": ["text", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "text": { "type": "string" },
+        "status": { "enum": ["verified", "reported", "hypothesis"] },
+        "source": { "type": "string" }
+      }
+    }
+  }
+}

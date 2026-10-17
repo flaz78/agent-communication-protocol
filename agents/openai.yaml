@@ -1,0 +1,7 @@
+# Metadati facoltativi per OpenAI Codex. Ignorati dagli altri runtime.
+interface:
+  display_name: "Agent Communication Protocol (ACP)"
+  short_description: "Prompt chiari, coding anti-regressione, handoff JSON verificabili"
+  default_prompt: "ACP AUTO: "
+policy:
+  allow_implicit_invocation: true
